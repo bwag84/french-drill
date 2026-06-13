@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f9f7f4;
+  --surface: #ffffff;
+  --text: #1a1a1a;
+  --text-muted: #6b6b6b;
+  --accent: #2d5be3;
+  --accent-light: #e8eeff;
+  --success: #1a7a4a;
+  --success-light: #e6f5ed;
+  --danger: #c0392b;
+  --danger-light: #fdecea;
+  --border: #e5e2dc;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  height: 100%;
+  margin: 0;
+  overscroll-behavior: none;
+}
+
+/* Card flip */
+.card-wrapper { perspective: 1200px; }
+.card-inner {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+.card-inner.flipped { transform: rotateY(180deg); }
+.card-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.card-back {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  transform: rotateY(180deg);
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+}
+
+@keyframes flash-green { 0%{background:var(--success-light)} 100%{background:var(--surface)} }
+@keyframes flash-red   { 0%{background:var(--danger-light)}  100%{background:var(--surface)} }
+.flash-correct { animation: flash-green 0.5s ease-out; }
+.flash-wrong   { animation: flash-red   0.5s ease-out; }
+
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
+.safe-top    { padding-top:    env(safe-area-inset-top, 0); }
