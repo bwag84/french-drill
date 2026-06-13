@@ -1,23 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getAllCards, Card } from '@/lib/content';
+import { getAllCards, Card, CONJUGATIONS } from '@/lib/content';
 import {
-  buildSession,
-  updateRecord,
-  loadRecords,
-  addCustomCard,
-  loadCustomCards,
-  deleteCustomCard,
-  CustomCard,
-  Quality,
+  buildSession, updateRecord, loadRecords,
+  addCustomCard, loadCustomCards, deleteCustomCard,
+  CustomCard, Quality,
 } from '@/lib/srs';
 
 type Screen = 'home' | 'drill' | 'result' | 'stats' | 'add-card';
 
 interface SessionCard {
   card: Card | (CustomCard & { type: 'word'; category: 'core' });
-  reversed: boolean; // true = show English first, ask for French
+  reversed: boolean;
 }
 
 function shuffleArr<T>(arr: T[]): T[] {
@@ -32,6 +27,34 @@ function getCategoryEmoji(cat: string): string {
   return map[cat] ?? '📚';
 }
 
+// ─── Conjugation table ────────────────────────────────────────────────────────
+function ConjTable({ verbKey, highlightPronoun }: { verbKey: string; highlightPronoun: string }) {
+  const table = CONJUGATIONS[verbKey];
+  if (!table) return null;
+  return (
+    <div style={{ marginTop: 20, width: '100%' }}>
+      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8, textAlign: 'center' }}>{table.verb}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+        {table.rows.map(({ pronoun, form }) => {
+          const isHighlighted = pronoun === highlightPronoun;
+          return (
+            <div key={pronoun} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '6px 10px', borderRadius: 8,
+              background: isHighlighted ? 'var(--accent)' : 'var(--accent-light)',
+              border: isHighlighted ? '2px solid var(--accent)' : '2px solid transparent',
+            }}>
+              <span style={{ fontSize: 12, color: isHighlighted ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)' }}>{pronoun}</span>
+              <span style={{ fontSize: 13, fontWeight: isHighlighted ? 700 : 500, color: isHighlighted ? 'white' : 'var(--text)' }}>{form}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Rating bar ───────────────────────────────────────────────────────────────
 function RatingBar({ onRate }: { onRate: (q: Quality) => void }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
@@ -50,14 +73,10 @@ function ProgressBar({ index, total }: { index: number; total: number }) {
   );
 }
 
-function Flashcard({
-  card, reversed, onRate, index, total,
-}: {
-  card: SessionCard['card'];
-  reversed: boolean;
-  onRate: (q: Quality) => void;
-  index: number;
-  total: number;
+// ─── Flashcard ────────────────────────────────────────────────────────────────
+function Flashcard({ card, reversed, onRate, index, total }: {
+  card: SessionCard['card']; reversed: boolean;
+  onRate: (q: Quality) => void; index: number; total: number;
 }) {
   const [flipped, setFlipped] = useState(false);
   const [flash, setFlash] = useState('');
@@ -69,7 +88,6 @@ function Flashcard({
     setTimeout(() => onRate(q), 320);
   };
 
-  // Swap front/back when reversed
   const displayFront = reversed ? card.back : card.front;
   const displayBack  = reversed ? card.front : card.back;
   const dirLabel     = reversed ? '🇳🇱 → 🇫🇷' : '🇫🇷 → 🇳🇱';
@@ -79,9 +97,12 @@ function Flashcard({
     ? { word: 'Word', sentence: 'Phrase', grammar: 'Grammar', 'multiple-choice': 'Quiz' }[c.type] ?? 'Card'
     : 'My Card';
   const cat = 'category' in card ? (card as Card).category : 'core';
+  const hasConjTable = !reversed && c.verbKey && c.highlightPronoun;
+  const hasInformal  = c.informal;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
           <span>{typeLabel} · {getCategoryEmoji(cat)} {cat}</span>
@@ -93,29 +114,56 @@ function Flashcard({
         <ProgressBar index={index} total={total} />
       </div>
 
+      {/* Card */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: 24 }}>
         <div className="card-wrapper">
-          <div className={`card-inner ${flipped ? 'flipped' : ''}`} style={{ minHeight: 200 }}>
+          <div className={`card-inner ${flipped ? 'flipped' : ''}`} style={{ minHeight: hasConjTable ? 340 : 200 }}>
             {/* Front */}
             <div
               className={`card-face ${flash}`}
               onClick={() => setFlipped(f => !f)}
-              style={{ background: 'var(--surface)', borderRadius: 20, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', minHeight: 200, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
+              style={{ background: 'var(--surface)', borderRadius: 20, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', minHeight: hasConjTable ? 340 : 200, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
             >
               <p style={{ fontSize: 24, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3, margin: 0 }}>{displayFront}</p>
               {!flipped && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16, marginBottom: 0 }}>tap to reveal</p>}
             </div>
+
             {/* Back */}
             <div
               className="card-back"
               onClick={() => setFlipped(f => !f)}
-              style={{ background: 'var(--surface)', borderRadius: 20, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', minHeight: 200, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
+              style={{ background: 'var(--surface)', borderRadius: 20, padding: '24px 24px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', textAlign: 'center', cursor: 'pointer', minHeight: hasConjTable ? 340 : 200, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', overflowY: 'auto' }}
             >
-              <p style={{ fontSize: 22, fontWeight: 500, color: 'var(--text)', margin: 0 }}>{displayBack}</p>
-              {'hint' in card && (card as Card).hint && (
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 12, marginBottom: 0 }}>{(card as Card).hint}</p>
+              {/* Main answer */}
+              <p style={{ fontSize: 22, fontWeight: 500, color: 'var(--text)', margin: '12px 0 0' }}>{displayBack}</p>
+
+              {/* Hint */}
+              {!reversed && c.hint && (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, marginBottom: 0 }}>{c.hint}</p>
               )}
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 16, marginBottom: 0 }}>tap to flip back</p>
+
+              {/* Formal / Informal pair */}
+              {hasInformal && !reversed && (
+                <div style={{ marginTop: 16, width: '100%', borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, textAlign: 'left' }}>
+                    <div style={{ background: 'var(--accent-light)', borderRadius: 10, padding: '8px 12px' }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)', margin: '0 0 3px' }}>Formal</p>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', margin: 0 }}>{c.front}</p>
+                    </div>
+                    <div style={{ background: 'var(--success-light)', borderRadius: 10, padding: '8px 12px' }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--success)', margin: '0 0 3px' }}>Informal</p>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', margin: 0 }}>{c.informal}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Conjugation table */}
+              {hasConjTable && (
+                <ConjTable verbKey={c.verbKey!} highlightPronoun={c.highlightPronoun!} />
+              )}
+
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 14, marginBottom: 0 }}>tap to flip back</p>
             </div>
           </div>
         </div>
@@ -132,7 +180,10 @@ function Flashcard({
   );
 }
 
-function MultipleChoice({ card, onRate, index, total }: { card: Card; onRate: (q: Quality) => void; index: number; total: number }) {
+// ─── Multiple Choice ──────────────────────────────────────────────────────────
+function MultipleChoice({ card, onRate, index, total }: {
+  card: Card; onRate: (q: Quality) => void; index: number; total: number;
+}) {
   const [selected, setSelected] = useState<string | null>(null);
   const choices = useRef(shuffleArr(card.choices!));
 
@@ -142,15 +193,17 @@ function MultipleChoice({ card, onRate, index, total }: { card: Card; onRate: (q
   }, [card.id]);
 
   const correct = card.correctChoice!;
+  const isCorrect = selected === correct;
 
   const handleSelect = (choice: string) => {
     if (selected) return;
     setSelected(choice);
-    setTimeout(() => onRate(choice === correct ? 5 : 1), 900);
+    // No auto-advance — user must click Next
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
           <span>Quiz · {getCategoryEmoji(card.category)} {card.category}</span>
@@ -159,29 +212,42 @@ function MultipleChoice({ card, onRate, index, total }: { card: Card; onRate: (q
         <ProgressBar index={index} total={total} />
       </div>
 
-      <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 24, marginBottom: 24, textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+      {/* Question */}
+      <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 24, marginBottom: 20, textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
         <p style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{card.front}</p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+      {/* Choices */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
         {choices.current.map(choice => {
           let bg = 'var(--surface)', border = 'var(--border)', color = 'var(--text)';
           if (selected) {
-            if (choice === correct) { bg = 'var(--success-light)'; border = 'var(--success)'; color = 'var(--success)'; }
-            else if (choice === selected) { bg = 'var(--danger-light)'; border = 'var(--danger)'; color = 'var(--danger)'; }
+            if (choice === correct)        { bg = 'var(--success-light)'; border = 'var(--success)'; color = 'var(--success)'; }
+            else if (choice === selected)  { bg = 'var(--danger-light)';  border = 'var(--danger)';  color = 'var(--danger)';  }
           }
           return (
             <button key={choice} onClick={() => handleSelect(choice)}
-              style={{ width: '100%', textAlign: 'left', padding: '14px 18px', borderRadius: 16, fontSize: 14, fontWeight: 500, background: bg, border: `1.5px solid ${border}`, color, cursor: 'pointer', transition: 'all 0.15s' }}>
+              style={{ width: '100%', textAlign: 'left', padding: '14px 18px', borderRadius: 16, fontSize: 14, fontWeight: 500, background: bg, border: `1.5px solid ${border}`, color, cursor: selected ? 'default' : 'pointer', transition: 'all 0.15s' }}>
               {choice}
             </button>
           );
         })}
       </div>
+
+      {/* Next button appears after selection */}
+      {selected && (
+        <button
+          onClick={() => onRate(isCorrect ? 5 : 1)}
+          style={{ marginTop: 16, width: '100%', padding: '16px 0', borderRadius: 16, fontWeight: 600, fontSize: 16, background: isCorrect ? 'var(--success)' : 'var(--accent)', color: 'white', border: 'none', cursor: 'pointer' }}
+        >
+          {isCorrect ? 'Correct — Next →' : 'Next →'}
+        </button>
+      )}
     </div>
   );
 }
 
+// ─── Result ───────────────────────────────────────────────────────────────────
 function ResultScreen({ correct, total, onHome, onAgain }: { correct: number; total: number; onHome: () => void; onAgain: () => void }) {
   const pct = Math.round((correct / total) * 100);
   return (
@@ -191,23 +257,22 @@ function ResultScreen({ correct, total, onHome, onAgain }: { correct: number; to
       <p style={{ fontSize: 16, color: 'var(--text-muted)', marginBottom: 40 }}>{correct} of {total} correct · {pct}%</p>
       <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <button onClick={onAgain} style={{ padding: '16px 0', borderRadius: 16, fontWeight: 600, fontSize: 16, background: 'var(--accent)', color: 'white', border: 'none', cursor: 'pointer', width: '100%' }}>New session</button>
-        <button onClick={onHome} style={{ padding: '16px 0', borderRadius: 16, fontWeight: 600, fontSize: 16, background: 'var(--surface)', color: 'var(--text)', border: '1.5px solid var(--border)', cursor: 'pointer', width: '100%' }}>Home</button>
+        <button onClick={onHome}  style={{ padding: '16px 0', borderRadius: 16, fontWeight: 600, fontSize: 16, background: 'var(--surface)', color: 'var(--text)', border: '1.5px solid var(--border)', cursor: 'pointer', width: '100%' }}>Home</button>
       </div>
     </div>
   );
 }
 
+// ─── Stats ────────────────────────────────────────────────────────────────────
 function StatsScreen({ onBack }: { onBack: () => void }) {
   const [, forceUpdate] = useState(0);
   const records = loadRecords();
-  const allIds = getAllCards().map(c => c.id);
-  const custom = loadCustomCards();
+  const allIds  = getAllCards().map(c => c.id);
+  const custom  = loadCustomCards();
   const n = Date.now();
-
   const seen     = Object.values(records).filter(r => r.totalReviews > 0).length;
   const mastered = Object.values(records).filter(r => r.interval >= 21).length;
   const due      = allIds.filter(id => { const r = records[id]; return r && r.totalReviews > 0 && r.nextReview <= n; }).length;
-
   const handleDelete = (id: string) => { deleteCustomCard(id); forceUpdate(n => n + 1); };
 
   return (
@@ -249,18 +314,17 @@ function StatsScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
+// ─── Add Card ─────────────────────────────────────────────────────────────────
 function AddCardScreen({ onBack, onAdded }: { onBack: () => void; onAdded: () => void }) {
   const [front, setFront] = useState('');
-  const [back, setBack] = useState('');
-  const [hint, setHint] = useState('');
+  const [back, setBack]   = useState('');
+  const [hint, setHint]   = useState('');
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
     if (!front.trim() || !back.trim()) return;
     addCustomCard(front, back, hint);
-    setSaved(true);
-    setFront(''); setBack(''); setHint('');
-    onAdded();
+    setSaved(true); setFront(''); setBack(''); setHint(''); onAdded();
     setTimeout(() => setSaved(false), 1500);
   };
 
@@ -286,6 +350,7 @@ function AddCardScreen({ onBack, onAdded }: { onBack: () => void; onAdded: () =>
   );
 }
 
+// ─── Home ─────────────────────────────────────────────────────────────────────
 function HomeScreen({ onStart, onStats, onAdd, dueCount, newCount }: { onStart: () => void; onStats: () => void; onAdd: () => void; dueCount: number; newCount: number }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '40px 0 0' }}>
@@ -328,17 +393,18 @@ function HomeScreen({ onStart, onStats, onAdd, dueCount, newCount }: { onStart: 
   );
 }
 
+// ─── App root ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('home');
+  const [screen, setScreen]             = useState<Screen>('home');
   const [sessionQueue, setSessionQueue] = useState<SessionCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionCorrect, setSessionCorrect] = useState(0);
-  const [dueCount, setDueCount] = useState(0);
-  const [newCount, setNewCount] = useState(0);
-  const [, setCustomAdded] = useState(0);
+  const [dueCount, setDueCount]         = useState(0);
+  const [newCount, setNewCount]         = useState(0);
+  const [, setCustomAdded]              = useState(0);
 
   const allCards = getAllCards();
-  const allIds = allCards.map(c => c.id);
+  const allIds   = allCards.map(c => c.id);
 
   const refreshCounts = useCallback(() => {
     const records = loadRecords();
@@ -354,24 +420,17 @@ export default function App() {
   const startSession = useCallback(() => {
     const ids = buildSession(allIds, allCards);
     const custom = loadCustomCards();
-
     const sessionCards: SessionCard[] = ids.map(id => {
       const card = allCards.find(c => c.id === id);
       if (!card) return null;
-      // Grammar cards are always FR→fill-in, don't reverse them
-      // MC cards are never reversed (they have their own logic)
       const canReverse = card.type !== 'grammar' && card.type !== 'multiple-choice';
-      const reversed = canReverse && Math.random() < 0.5;
-      return { card, reversed };
+      return { card, reversed: canReverse && Math.random() < 0.5 };
     }).filter(Boolean) as SessionCard[];
-
     const customSlots: SessionCard[] = custom.slice(0, 3).map(c => ({
       card: { ...c, type: 'word' as const, category: 'core' as const },
       reversed: Math.random() < 0.5,
     }));
-
-    const combined = shuffleArr([...sessionCards, ...customSlots]);
-    setSessionQueue(combined);
+    setSessionQueue(shuffleArr([...sessionCards, ...customSlots]));
     setCurrentIndex(0);
     setSessionCorrect(0);
     setScreen('drill');
@@ -383,21 +442,17 @@ export default function App() {
       updateRecord(current.card.id, quality);
       if (quality >= 3) setSessionCorrect(n => n + 1);
     }
-    if (currentIndex + 1 >= sessionQueue.length) {
-      setScreen('result');
-      refreshCounts();
-    } else {
-      setCurrentIndex(i => i + 1);
-    }
+    if (currentIndex + 1 >= sessionQueue.length) { setScreen('result'); refreshCounts(); }
+    else setCurrentIndex(i => i + 1);
   }, [sessionQueue, currentIndex, refreshCounts]);
 
-  const base: React.CSSProperties    = { maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflowY: 'auto' };
-  const padded: React.CSSProperties  = { ...base, padding: '0 20px 32px' };
+  const base: React.CSSProperties   = { maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflowY: 'auto' };
+  const padded: React.CSSProperties = { ...base, padding: '0 20px 32px' };
 
-  if (screen === 'home')     return <div style={padded}                           className="safe-top"><HomeScreen onStart={startSession} onStats={() => setScreen('stats')} onAdd={() => setScreen('add-card')} dueCount={dueCount} newCount={newCount} /></div>;
-  if (screen === 'stats')    return <div style={padded}                           className="safe-top"><StatsScreen onBack={() => setScreen('home')} /></div>;
-  if (screen === 'add-card') return <div style={{ ...padded, paddingTop: 24 }}    className="safe-top"><AddCardScreen onBack={() => setScreen('home')} onAdded={() => { setCustomAdded(n => n + 1); refreshCounts(); }} /></div>;
-  if (screen === 'result')   return <div style={base}                             className="safe-top"><ResultScreen correct={sessionCorrect} total={sessionQueue.length} onHome={() => { setScreen('home'); refreshCounts(); }} onAgain={startSession} /></div>;
+  if (screen === 'home')     return <div style={padded}                        className="safe-top"><HomeScreen onStart={startSession} onStats={() => setScreen('stats')} onAdd={() => setScreen('add-card')} dueCount={dueCount} newCount={newCount} /></div>;
+  if (screen === 'stats')    return <div style={padded}                        className="safe-top"><StatsScreen onBack={() => setScreen('home')} /></div>;
+  if (screen === 'add-card') return <div style={{ ...padded, paddingTop: 24 }} className="safe-top"><AddCardScreen onBack={() => setScreen('home')} onAdded={() => { setCustomAdded(n => n + 1); refreshCounts(); }} /></div>;
+  if (screen === 'result')   return <div style={base}                          className="safe-top"><ResultScreen correct={sessionCorrect} total={sessionQueue.length} onHome={() => { setScreen('home'); refreshCounts(); }} onAgain={startSession} /></div>;
 
   const current = sessionQueue[currentIndex];
   if (!current) return null;

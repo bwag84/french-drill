@@ -8,12 +8,88 @@ export interface Card {
   id: string;
   type: CardType;
   category: Category;
-  front: string;      // what user sees first
-  back: string;       // answer / translation
-  hint?: string;      // grammar note or usage tip
-  choices?: string[]; // for multiple-choice cards (includes correct answer)
+  front: string;        // what user sees first
+  back: string;         // answer / translation
+  hint?: string;        // grammar note or usage tip
+  informal?: string;    // informal (tu) equivalent when card uses formal (vous)
+  verbKey?: string;     // key into CONJUGATIONS for grammar verb-drill cards
+  highlightPronoun?: string; // pronoun row to highlight in conjugation table
+  choices?: string[];   // for multiple-choice cards
   correctChoice?: string;
 }
+
+// ─── Conjugation tables ───────────────────────────────────────────────────────
+export interface ConjugationRow { pronoun: string; form: string; }
+export interface ConjugationTable { verb: string; rows: ConjugationRow[]; }
+
+export const CONJUGATIONS: Record<string, ConjugationTable> = {
+  être: {
+    verb: 'être — to be',
+    rows: [
+      { pronoun: 'je',        form: 'suis'   },
+      { pronoun: 'tu',        form: 'es'     },
+      { pronoun: 'il/elle',   form: 'est'    },
+      { pronoun: 'nous',      form: 'sommes' },
+      { pronoun: 'vous',      form: 'êtes'   },
+      { pronoun: 'ils/elles', form: 'sont'   },
+    ],
+  },
+  avoir: {
+    verb: 'avoir — to have',
+    rows: [
+      { pronoun: 'je',        form: 'ai'    },
+      { pronoun: 'tu',        form: 'as'    },
+      { pronoun: 'il/elle',   form: 'a'     },
+      { pronoun: 'nous',      form: 'avons' },
+      { pronoun: 'vous',      form: 'avez'  },
+      { pronoun: 'ils/elles', form: 'ont'   },
+    ],
+  },
+  aller: {
+    verb: 'aller — to go',
+    rows: [
+      { pronoun: 'je',        form: 'vais'  },
+      { pronoun: 'tu',        form: 'vas'   },
+      { pronoun: 'il/elle',   form: 'va'    },
+      { pronoun: 'nous',      form: 'allons'},
+      { pronoun: 'vous',      form: 'allez' },
+      { pronoun: 'ils/elles', form: 'vont'  },
+    ],
+  },
+  vouloir: {
+    verb: 'vouloir — to want',
+    rows: [
+      { pronoun: 'je',        form: 'veux'    },
+      { pronoun: 'tu',        form: 'veux'    },
+      { pronoun: 'il/elle',   form: 'veut'    },
+      { pronoun: 'nous',      form: 'voulons' },
+      { pronoun: 'vous',      form: 'voulez'  },
+      { pronoun: 'ils/elles', form: 'veulent' },
+    ],
+  },
+  pouvoir: {
+    verb: 'pouvoir — to be able to',
+    rows: [
+      { pronoun: 'je',        form: 'peux'    },
+      { pronoun: 'tu',        form: 'peux'    },
+      { pronoun: 'il/elle',   form: 'peut'    },
+      { pronoun: 'nous',      form: 'pouvons' },
+      { pronoun: 'vous',      form: 'pouvez'  },
+      { pronoun: 'ils/elles', form: 'peuvent' },
+    ],
+  },
+  faire: {
+    verb: 'faire — to do / make',
+    rows: [
+      { pronoun: 'je',        form: 'fais'    },
+      { pronoun: 'tu',        form: 'fais'    },
+      { pronoun: 'il/elle',   form: 'fait'    },
+      { pronoun: 'nous',      form: 'faisons' },
+      { pronoun: 'vous',      form: 'faites'  },
+      { pronoun: 'ils/elles', form: 'font'    },
+    ],
+  },
+};
 
 const cards: Card[] = [
   // ─── GREETINGS & PLEASANTRIES ───────────────────────────────────────────────
@@ -26,19 +102,19 @@ const cards: Card[] = [
   { id: 'g07', type: 'word', category: 'greetings', front: 'Merci', back: 'Thank you' },
   { id: 'g08', type: 'word', category: 'greetings', front: 'Merci beaucoup', back: 'Thank you very much' },
   { id: 'g09', type: 'word', category: 'greetings', front: 'De rien', back: "You're welcome" },
-  { id: 'g10', type: 'word', category: 'greetings', front: 'S\'il vous plaît', back: 'Please (formal)', hint: 'svp — always use with strangers' },
-  { id: 'g11', type: 'word', category: 'greetings', front: 'Excusez-moi', back: 'Excuse me (formal)' },
+  { id: 'g10', type: 'word', category: 'greetings', front: 'S\'il vous plaît', back: 'Please (formal)', hint: 'svp — always use with strangers', informal: 'S\'il te plaît (stp)' },
+  { id: 'g11', type: 'word', category: 'greetings', front: 'Excusez-moi', back: 'Excuse me (formal)', informal: 'Excuse-moi' },
   { id: 'g12', type: 'word', category: 'greetings', front: 'Pardon', back: 'Sorry / Pardon' },
   { id: 'g13', type: 'word', category: 'greetings', front: 'Enchanté(e)', back: 'Nice to meet you' },
   { id: 'g14', type: 'sentence', category: 'greetings', front: 'Ça va ?', back: 'How\'s it going?' },
   { id: 'g15', type: 'sentence', category: 'greetings', front: 'Ça va bien, merci.', back: 'I\'m doing well, thank you.' },
-  { id: 'g16', type: 'sentence', category: 'greetings', front: 'Comment vous appelez-vous ?', back: 'What\'s your name? (formal)' },
+  { id: 'g16', type: 'sentence', category: 'greetings', front: 'Comment vous appelez-vous ?', back: 'What\'s your name? (formal)', informal: 'Comment tu t\'appelles ?' },
   { id: 'g17', type: 'sentence', category: 'greetings', front: 'Je m\'appelle Bart.', back: 'My name is Bart.' },
   { id: 'g18', type: 'sentence', category: 'greetings', front: 'Je suis néerlandais.', back: 'I\'m Dutch.' },
-  { id: 'g19', type: 'sentence', category: 'greetings', front: 'Vous parlez anglais ?', back: 'Do you speak English?' },
+  { id: 'g19', type: 'sentence', category: 'greetings', front: 'Vous parlez anglais ?', back: 'Do you speak English?', informal: 'Tu parles anglais ?' },
   { id: 'g20', type: 'sentence', category: 'greetings', front: 'Je ne parle pas bien français.', back: 'I don\'t speak French well.' },
-  { id: 'g21', type: 'sentence', category: 'greetings', front: 'Pouvez-vous répéter, s\'il vous plaît ?', back: 'Can you repeat that, please?' },
-  { id: 'g22', type: 'sentence', category: 'greetings', front: 'Plus lentement, s\'il vous plaît.', back: 'More slowly, please.' },
+  { id: 'g21', type: 'sentence', category: 'greetings', front: 'Pouvez-vous répéter, s\'il vous plaît ?', back: 'Can you repeat that, please?', informal: 'Tu peux répéter, s\'il te plaît ?' },
+  { id: 'g22', type: 'sentence', category: 'greetings', front: 'Plus lentement, s\'il vous plaît.', back: 'More slowly, please.', informal: 'Plus lentement, s\'il te plaît.' },
   { id: 'g23', type: 'sentence', category: 'greetings', front: 'Je ne comprends pas.', back: 'I don\'t understand.' },
   { id: 'g24', type: 'sentence', category: 'greetings', front: 'C\'est très gentil !', back: 'That\'s very kind!' },
   { id: 'g25', type: 'sentence', category: 'greetings', front: 'Bonne journée !', back: 'Have a good day!' },
@@ -165,15 +241,15 @@ const cards: Card[] = [
   { id: 'w45', type: 'sentence', category: 'core', front: 'Avec plaisir !', back: 'With pleasure!' },
 
   // ─── GRAMMAR DRILLS ─────────────────────────────────────────────────────────
-  { id: 'gr01', type: 'grammar', category: 'grammar', front: 'être — je ___', back: 'je suis', hint: 'I am' },
-  { id: 'gr02', type: 'grammar', category: 'grammar', front: 'être — vous ___', back: 'vous êtes', hint: 'you are (formal/plural)' },
-  { id: 'gr03', type: 'grammar', category: 'grammar', front: 'avoir — j\'___', back: 'j\'ai', hint: 'I have' },
-  { id: 'gr04', type: 'grammar', category: 'grammar', front: 'avoir — vous ___', back: 'vous avez', hint: 'you have' },
-  { id: 'gr05', type: 'grammar', category: 'grammar', front: 'aller — je ___', back: 'je vais', hint: 'I go / I\'m going' },
-  { id: 'gr06', type: 'grammar', category: 'grammar', front: 'aller — nous ___', back: 'nous allons', hint: 'we go' },
-  { id: 'gr07', type: 'grammar', category: 'grammar', front: 'vouloir — je ___', back: 'je veux', hint: 'I want (direct — use voudrais to be polite)' },
-  { id: 'gr08', type: 'grammar', category: 'grammar', front: 'pouvoir — je ___', back: 'je peux', hint: 'I can / I am able to' },
-  { id: 'gr09', type: 'grammar', category: 'grammar', front: 'faire — je ___', back: 'je fais', hint: 'I do / I make' },
+  { id: 'gr01', type: 'grammar', category: 'grammar', front: 'être — je ___', back: 'je suis', hint: 'I am', verbKey: 'être', highlightPronoun: 'je' },
+  { id: 'gr02', type: 'grammar', category: 'grammar', front: 'être — vous ___', back: 'vous êtes', hint: 'you are (formal/plural)', verbKey: 'être', highlightPronoun: 'vous', informal: 'tu es' },
+  { id: 'gr03', type: 'grammar', category: 'grammar', front: 'avoir — j\'___', back: 'j\'ai', hint: 'I have', verbKey: 'avoir', highlightPronoun: 'je' },
+  { id: 'gr04', type: 'grammar', category: 'grammar', front: 'avoir — vous ___', back: 'vous avez', hint: 'you have', verbKey: 'avoir', highlightPronoun: 'vous', informal: 'tu as' },
+  { id: 'gr05', type: 'grammar', category: 'grammar', front: 'aller — je ___', back: 'je vais', hint: 'I go / I\'m going', verbKey: 'aller', highlightPronoun: 'je' },
+  { id: 'gr06', type: 'grammar', category: 'grammar', front: 'aller — nous ___', back: 'nous allons', hint: 'we go', verbKey: 'aller', highlightPronoun: 'nous' },
+  { id: 'gr07', type: 'grammar', category: 'grammar', front: 'vouloir — je ___', back: 'je veux', hint: 'I want (direct — use voudrais to be polite)', verbKey: 'vouloir', highlightPronoun: 'je' },
+  { id: 'gr08', type: 'grammar', category: 'grammar', front: 'pouvoir — je ___', back: 'je peux', hint: 'I can / I am able to', verbKey: 'pouvoir', highlightPronoun: 'je' },
+  { id: 'gr09', type: 'grammar', category: 'grammar', front: 'faire — je ___', back: 'je fais', hint: 'I do / I make', verbKey: 'faire', highlightPronoun: 'je' },
   { id: 'gr10', type: 'grammar', category: 'grammar', front: 'Gender: ___ boulangerie', back: 'la boulangerie', hint: 'la = feminine' },
   { id: 'gr11', type: 'grammar', category: 'grammar', front: 'Gender: ___ pain', back: 'le pain', hint: 'le = masculine' },
   { id: 'gr12', type: 'grammar', category: 'grammar', front: 'Gender: ___ eau', back: 'l\'eau', hint: 'feminine — drops le/la before vowel' },
