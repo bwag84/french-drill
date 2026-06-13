@@ -32,20 +32,15 @@ function ConjTable({ verbKey, highlightPronoun }: { verbKey: string; highlightPr
   const table = CONJUGATIONS[verbKey];
   if (!table) return null;
   return (
-    <div style={{ marginTop: 20, width: '100%' }}>
-      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8, textAlign: 'center' }}>{table.verb}</p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+    <div style={{ marginTop: 16, width: '100%' }}>
+      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10, textAlign: 'center' }}>{table.verb}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
         {table.rows.map(({ pronoun, form }) => {
-          const isHighlighted = pronoun === highlightPronoun;
+          const hi = pronoun === highlightPronoun;
           return (
-            <div key={pronoun} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '6px 10px', borderRadius: 8,
-              background: isHighlighted ? 'var(--accent)' : 'var(--accent-light)',
-              border: isHighlighted ? '2px solid var(--accent)' : '2px solid transparent',
-            }}>
-              <span style={{ fontSize: 12, color: isHighlighted ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)' }}>{pronoun}</span>
-              <span style={{ fontSize: 13, fontWeight: isHighlighted ? 700 : 500, color: isHighlighted ? 'white' : 'var(--text)' }}>{form}</span>
+            <div key={pronoun} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'right', minWidth: 56 }}>{pronoun}</span>
+              <span style={{ fontSize: 15, fontWeight: hi ? 700 : 400, color: hi ? 'var(--accent)' : 'var(--text)' }}>{form}</span>
             </div>
           );
         })}
@@ -98,7 +93,7 @@ function Flashcard({ card, reversed, onRate, index, total }: {
     : 'My Card';
   const cat = 'category' in card ? (card as Card).category : 'core';
   const hasConjTable = !reversed && c.verbKey && c.highlightPronoun;
-  const hasInformal  = c.informal;
+  const hasInformal  = c.informal && !reversed;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -117,12 +112,12 @@ function Flashcard({ card, reversed, onRate, index, total }: {
       {/* Card */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: 24 }}>
         <div className="card-wrapper">
-          <div className={`card-inner ${flipped ? 'flipped' : ''}`} style={{ minHeight: hasConjTable ? 340 : 200 }}>
+          <div className={`card-inner ${flipped ? 'flipped' : ''}`} style={{ minHeight: 200 + (hasConjTable ? 150 : 0) + (hasInformal ? 56 : 0) }}>
             {/* Front */}
             <div
               className={`card-face ${flash}`}
               onClick={() => setFlipped(f => !f)}
-              style={{ background: 'var(--surface)', borderRadius: 20, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', minHeight: hasConjTable ? 340 : 200, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
+              style={{ background: 'var(--surface)', borderRadius: 20, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', minHeight: 200 + (hasConjTable ? 150 : 0) + (hasInformal ? 56 : 0), boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
             >
               <p style={{ fontSize: 24, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3, margin: 0 }}>{displayFront}</p>
               {!flipped && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16, marginBottom: 0 }}>tap to reveal</p>}
@@ -132,7 +127,7 @@ function Flashcard({ card, reversed, onRate, index, total }: {
             <div
               className="card-back"
               onClick={() => setFlipped(f => !f)}
-              style={{ background: 'var(--surface)', borderRadius: 20, padding: '24px 24px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', textAlign: 'center', cursor: 'pointer', minHeight: hasConjTable ? 340 : 200, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', overflowY: 'auto' }}
+              style={{ background: 'var(--surface)', borderRadius: 20, padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', textAlign: 'center', cursor: 'pointer', minHeight: 200, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
             >
               {/* Main answer */}
               <p style={{ fontSize: 22, fontWeight: 500, color: 'var(--text)', margin: '12px 0 0' }}>{displayBack}</p>
@@ -144,16 +139,14 @@ function Flashcard({ card, reversed, onRate, index, total }: {
 
               {/* Formal / Informal pair */}
               {hasInformal && !reversed && (
-                <div style={{ marginTop: 16, width: '100%', borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, textAlign: 'left' }}>
-                    <div style={{ background: 'var(--accent-light)', borderRadius: 10, padding: '8px 12px' }}>
-                      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)', margin: '0 0 3px' }}>Formal</p>
-                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', margin: 0 }}>{c.front}</p>
-                    </div>
-                    <div style={{ background: 'var(--success-light)', borderRadius: 10, padding: '8px 12px' }}>
-                      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--success)', margin: '0 0 3px' }}>Informal</p>
-                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', margin: 0 }}>{c.informal}</p>
-                    </div>
+                <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', minWidth: 52, textAlign: 'right' }}>formal</span>
+                    <span style={{ fontSize: 14, color: 'var(--text)' }}>{c.front}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--success)', minWidth: 52, textAlign: 'right' }}>informal</span>
+                    <span style={{ fontSize: 14, color: 'var(--text)' }}>{c.informal}</span>
                   </div>
                 </div>
               )}
